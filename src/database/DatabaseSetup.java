@@ -10,7 +10,7 @@ public class DatabaseSetup {
     public static void main(String[] args) {
         String sql = "CREATE TABLE IF NOT EXISTS contacts ("
             + "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-            + "nama_penyewa TEXT NOT NULL,"
+            + "nama TEXT NOT NULL,"
             + "nomor_telepon TEXT NOT NULL,"
             + "kategori TEXT"
             + ");";
@@ -18,8 +18,7 @@ public class DatabaseSetup {
         try (Connection conn = DatabaseConnection.getConnection();
             Statement stmt = conn.createStatement()) {
            stmt.execute(sql);
-           System.out.println("Tabel 'contacts' berhasil dibuat atau
-sudah ada.");
+           System.out.println("Tabel 'contacts' berhasil dibuat atau sudah ada.");
         } catch (SQLException e) {
             System.out.println("Error: " + e.getMessage());
         }
