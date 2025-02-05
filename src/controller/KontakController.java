@@ -12,7 +12,7 @@ contactDAO = new KontakDAO();
 }
 // Method mengambil semua data kontak
 public List<Kontak> getAllContacts() throws SQLException {
-return contactDAO.getAllContacts();
+    return contactDAO.getAllContacts();
 }
 // Method menambah kontak
 public void addContact(String nama, String nomorTelepon, String kategori)

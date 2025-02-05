@@ -5,19 +5,172 @@
  */
 package view;
 
+import controller.KontakController;
+import java.io.*;
+import model.Kontak;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 /**
  *
  * @author Bara
  */
 public class PengelolaanRentalFrame extends javax.swing.JFrame {
-
+    private DefaultTableModel model;
+    private KontakController controller;
     /**
-     * Creates new form PengelolaanRentalFrame
-     */
-    public PengelolaanRentalFrame() {
-        initComponents();
-    }
+    * Creates new form ContactManagerFrame
+    */    
+public PengelolaanRentalFrame() {
+   initComponents();
+    controller = new KontakController();
+    model = new DefaultTableModel(new String[]
+    {"No", "Nama", "Nomor Telepon", "Kategori"}, 0);
+    tblKontak.setModel(model);
+    loadContacts();
+}
 
+private void loadContacts() {
+try {
+model.setRowCount(0);
+List<Kontak> contacts = controller.getAllContacts();
+int rowNumber = 1;
+for (Kontak contact : contacts) {
+model.addRow(new Object[]{
+rowNumber++,
+contact.getNama(),
+contact.getNomorTelepon(),
+contact.getKategori()
+});
+}
+} catch (SQLException e) {
+showError(e.getMessage());
+}
+}
+private void showError(String message) {
+JOptionPane.showMessageDialog(this, message, "Error",
+JOptionPane.ERROR_MESSAGE);
+}
+private void addContact() {
+String nama = txtNama.getText().trim();
+String nomorTelepon = txtNomorTelepon.getText().trim();
+String kategori = (String) cmbKategori.getSelectedItem();
+if (!validatePhoneNumber(nomorTelepon)) {
+return; // Validasi nomor telepon gagal
+}
+try {
+if (controller.isDuplicatePhoneNumber(nomorTelepon, null)) {
+JOptionPane.showMessageDialog(this, "Kontak nomor telepon ini sudah ada.", "Kesalahan", JOptionPane.WARNING_MESSAGE);
+return;
+}
+controller.addContact(nama, nomorTelepon, kategori);
+loadContacts();
+JOptionPane.showMessageDialog(this, "Kontak berhasil ditambahkan!");
+clearInputFields();
+} catch (SQLException ex) {
+showError("Gagal menambahkan kontak: " + ex.getMessage());
+}
+}
+private boolean validatePhoneNumber(String phoneNumber) {
+if (phoneNumber == null || phoneNumber.isEmpty()) {
+JOptionPane.showMessageDialog(this, "Nomor telepon tidak boleh kosong.");
+return false;
+}
+if (!phoneNumber.matches("\\d+")) { // Hanya angka
+JOptionPane.showMessageDialog(this, "Nomor telepon hanya boleh berisi angka.");
+return false;
+}
+if (phoneNumber.length() < 8 || phoneNumber.length() > 15) { // Panjang 8-15
+JOptionPane.showMessageDialog(this, "Nomor telepon harus memiliki panjang antara 8 hingga 15 karakter.");
+return false;
+}
+return true;
+}
+private void clearInputFields() {
+txtNama.setText("");
+txtNomorTelepon.setText("");
+cmbKategori.setSelectedIndex(0);
+}
+private void editContact() {
+int selectedRow = tblKontak.getSelectedRow();
+if (selectedRow == -1) {
+JOptionPane.showMessageDialog(this, "Pilih kontak yang ingin diperbarui.", "Kesalahan", JOptionPane.WARNING_MESSAGE);
+return;
+}
+int id = (int) model.getValueAt(selectedRow, 0);
+String nama = txtNama.getText().trim();
+String nomorTelepon = txtNomorTelepon.getText().trim();
+String kategori = (String) cmbKategori.getSelectedItem();
+if (!validatePhoneNumber(nomorTelepon)) {
+return;
+}
+try {
+if (controller.isDuplicatePhoneNumber(nomorTelepon, id)) {
+JOptionPane.showMessageDialog(this, "Kontak nomor telepon ini sudah ada.", "Kesalahan", JOptionPane.WARNING_MESSAGE);
+return;
+}
+controller.updateContact(id, nama, nomorTelepon, kategori);
+loadContacts();
+JOptionPane.showMessageDialog(this, "Kontak berhasil diperbarui!");
+clearInputFields();
+} catch (SQLException ex) {
+showError("Gagal memperbarui kontak: " + ex.getMessage());
+}
+}
+private void populateInputFields(int selectedRow) {
+// Ambil data dari JTable
+String nama = model.getValueAt(selectedRow, 1).toString();
+String nomorTelepon = model.getValueAt(selectedRow, 2).toString();
+String kategori = model.getValueAt(selectedRow, 3).toString();
+// Set data ke komponen input
+txtNama.setText(nama);
+txtNomorTelepon.setText(nomorTelepon);
+cmbKategori.setSelectedItem(kategori);
+}
+
+private void deleteContact() {
+int selectedRow = tblKontak.getSelectedRow();
+if (selectedRow != -1) {
+int id = (int) model.getValueAt(selectedRow, 0);
+try {
+controller.deleteContact(id);
+loadContacts();
+JOptionPane.showMessageDialog(this, "Kontak berhasil dihapus!");
+clearInputFields();
+} catch (SQLException e) {
+
+showError(e.getMessage());
+}
+}
+}
+
+private void searchContact() {
+String keyword = txtPencarian.getText().trim();
+if (!keyword.isEmpty()) {
+try {
+List<Kontak> contacts = controller.searchContacts(keyword);
+model.setRowCount(0); // Bersihkan tabel
+for (Kontak contact : contacts) {
+model.addRow(new Object[]{
+contact.getId(),
+contact.getNama(),
+contact.getNomorTelepon(),
+contact.getKategori()
+});
+}
+if (contacts.isEmpty()) {
+JOptionPane.showMessageDialog(this, "Tidak ada kontak ditemukan.");
+}
+} catch (SQLException ex) {
+showError(ex.getMessage());
+}
+} else {
+loadContacts();
+}
+}
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -33,17 +186,17 @@ public class PengelolaanRentalFrame extends javax.swing.JFrame {
         jLabel3 = new javax.swing.JLabel();
         jLabel6 = new javax.swing.JLabel();
         jLabel8 = new javax.swing.JLabel();
-        jTextField1 = new javax.swing.JTextField();
-        jTextField2 = new javax.swing.JTextField();
-        jTextField7 = new javax.swing.JTextField();
-        jComboBox1 = new javax.swing.JComboBox<>();
-        jButton1 = new javax.swing.JButton();
-        jButton2 = new javax.swing.JButton();
-        jButton3 = new javax.swing.JButton();
+        txtNama = new javax.swing.JTextField();
+        txtNomorTelepon = new javax.swing.JTextField();
+        txtPencarian = new javax.swing.JTextField();
+        cmbKategori = new javax.swing.JComboBox<>();
+        btnTambah = new javax.swing.JButton();
+        btnEdit = new javax.swing.JButton();
+        btnHapus = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
-        jTable1 = new javax.swing.JTable();
-        jButton4 = new javax.swing.JButton();
-        jButton5 = new javax.swing.JButton();
+        tblKontak = new javax.swing.JTable();
+        btnImport = new javax.swing.JButton();
+        btnExport = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Rental Mobil Univ");
@@ -72,30 +225,45 @@ public class PengelolaanRentalFrame extends javax.swing.JFrame {
         jLabel8.setForeground(new java.awt.Color(255, 255, 255));
         jLabel8.setText("Pencarian");
 
-        jTextField1.setName("txtNama"); // NOI18N
+        txtNama.setName("txtNama"); // NOI18N
 
-        jTextField2.setName("txtNomerTelepon"); // NOI18N
+        txtNomorTelepon.setName("txtNomorTelepon"); // NOI18N
 
-        jTextField7.setName("txtPencarian"); // NOI18N
+        txtPencarian.setName("txtPencarian"); // NOI18N
 
-        jComboBox1.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Avanza", "Sigra", "Alphard", "Calya", "Xenia", "Terios" }));
-        jComboBox1.setName("cmbKategori"); // NOI18N
-        jComboBox1.addActionListener(new java.awt.event.ActionListener() {
+        cmbKategori.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Avanza", "Sigra", "Alphard", "Calya", "Xenia", "Terios" }));
+        cmbKategori.setName("cmbKategori"); // NOI18N
+        cmbKategori.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jComboBox1ActionPerformed(evt);
+                cmbKategoriActionPerformed(evt);
             }
         });
 
-        jButton1.setText("Tambah");
-        jButton1.setName("btnTambah"); // NOI18N
+        btnTambah.setText("Tambah");
+        btnTambah.setName("btnTambah"); // NOI18N
+        btnTambah.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnTambahActionPerformed(evt);
+            }
+        });
 
-        jButton2.setText("Edit");
-        jButton2.setName("btnEdit"); // NOI18N
+        btnEdit.setText("Edit");
+        btnEdit.setName("btnEdit"); // NOI18N
+        btnEdit.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnEditActionPerformed(evt);
+            }
+        });
 
-        jButton3.setText("Hapus");
-        jButton3.setName("btnHapus"); // NOI18N
+        btnHapus.setText("Hapus");
+        btnHapus.setName("btnHapus"); // NOI18N
+        btnHapus.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnHapusActionPerformed(evt);
+            }
+        });
 
-        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+        tblKontak.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
                 {null, null, null, null},
                 {null, null, null, null},
@@ -106,13 +274,23 @@ public class PengelolaanRentalFrame extends javax.swing.JFrame {
                 "Title 1", "Title 2", "Title 3", "Title 4"
             }
         ));
-        jTable1.setName("tblKontak"); // NOI18N
-        jScrollPane1.setViewportView(jTable1);
+        tblKontak.setName("tblKontak"); // NOI18N
+        tblKontak.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                tblKontakMouseClicked(evt);
+            }
+        });
+        tblKontak.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyTyped(java.awt.event.KeyEvent evt) {
+                tblKontakKeyTyped(evt);
+            }
+        });
+        jScrollPane1.setViewportView(tblKontak);
 
-        jButton4.setLabel("Import");
-        jButton4.setName("btnImport"); // NOI18N
+        btnImport.setLabel("Import");
+        btnImport.setName("btnImport"); // NOI18N
 
-        jButton5.setLabel("Export");
+        btnExport.setLabel("Export");
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
@@ -129,16 +307,16 @@ public class PengelolaanRentalFrame extends javax.swing.JFrame {
                             .addComponent(jLabel8))
                         .addGap(22, 22, 22)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jTextField1)
-                            .addComponent(jTextField2)
-                            .addComponent(jComboBox1, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(txtNama)
+                            .addComponent(txtNomorTelepon)
+                            .addComponent(cmbKategori, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(btnTambah, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                 .addGap(46, 46, 46)
-                                .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(btnEdit, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                 .addGap(49, 49, 49)
-                                .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                            .addComponent(jTextField7, javax.swing.GroupLayout.DEFAULT_SIZE, 437, Short.MAX_VALUE)))
+                                .addComponent(btnHapus, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                            .addComponent(txtPencarian, javax.swing.GroupLayout.DEFAULT_SIZE, 437, Short.MAX_VALUE)))
                     .addGroup(jPanel1Layout.createSequentialGroup()
                         .addGap(167, 167, 167)
                         .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -146,14 +324,14 @@ public class PengelolaanRentalFrame extends javax.swing.JFrame {
                 .addGap(496, 496, 496))
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addGap(0, 0, Short.MAX_VALUE)
-                        .addComponent(jButton5)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(jButton4))
-                    .addComponent(jScrollPane1))
+                .addComponent(jScrollPane1)
                 .addGap(499, 499, 499))
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addGap(416, 416, 416)
+                .addComponent(btnExport)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(btnImport)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -162,36 +340,36 @@ public class PengelolaanRentalFrame extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel2)
-                    .addComponent(jTextField1, javax.swing.GroupLayout.DEFAULT_SIZE, 21, Short.MAX_VALUE))
+                    .addComponent(txtNama, javax.swing.GroupLayout.DEFAULT_SIZE, 21, Short.MAX_VALUE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jTextField2)
+                    .addComponent(txtNomorTelepon)
                     .addComponent(jLabel3))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jComboBox1, javax.swing.GroupLayout.DEFAULT_SIZE, 21, Short.MAX_VALUE)
+                    .addComponent(cmbKategori, javax.swing.GroupLayout.DEFAULT_SIZE, 21, Short.MAX_VALUE)
                     .addComponent(jLabel6))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jButton1, javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(btnTambah, javax.swing.GroupLayout.Alignment.TRAILING)
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addComponent(jButton3)
-                        .addComponent(jButton2)))
+                        .addComponent(btnHapus)
+                        .addComponent(btnEdit)))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jTextField7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(txtPencarian, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel8))
                 .addGap(18, 18, 18)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 250, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 91, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jButton4)
-                    .addComponent(jButton5))
-                .addContainerGap(561, Short.MAX_VALUE))
+                    .addComponent(btnExport)
+                    .addComponent(btnImport))
+                .addContainerGap(713, Short.MAX_VALUE))
         );
 
-        jButton4.getAccessibleContext().setAccessibleName("");
-        jButton5.getAccessibleContext().setAccessibleName("btnExport");
+        btnImport.getAccessibleContext().setAccessibleName("");
+        btnExport.getAccessibleContext().setAccessibleName("btnExport");
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -211,9 +389,32 @@ public class PengelolaanRentalFrame extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private void jComboBox1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBox1ActionPerformed
+    private void cmbKategoriActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmbKategoriActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_jComboBox1ActionPerformed
+    }//GEN-LAST:event_cmbKategoriActionPerformed
+
+    private void btnTambahActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnTambahActionPerformed
+    addContact();        // TODO add your handling code here:
+    }//GEN-LAST:event_btnTambahActionPerformed
+
+    private void btnEditActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEditActionPerformed
+    editContact();        // TODO add your handling code here:
+    }//GEN-LAST:event_btnEditActionPerformed
+
+    private void tblKontakMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tblKontakMouseClicked
+    int selectedRow = tblKontak.getSelectedRow();
+    if (selectedRow != -1) {
+    populateInputFields(selectedRow);
+    }        // TODO add your handling code here:
+    }//GEN-LAST:event_tblKontakMouseClicked
+
+    private void btnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnHapusActionPerformed
+    deleteContact();        // TODO add your handling code here:
+    }//GEN-LAST:event_btnHapusActionPerformed
+
+    private void tblKontakKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_tblKontakKeyTyped
+    searchContact();        // TODO add your handling code here:
+    }//GEN-LAST:event_tblKontakKeyTyped
 
     /**
      * @param args the command line arguments
@@ -251,12 +452,12 @@ public class PengelolaanRentalFrame extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton jButton1;
-    private javax.swing.JButton jButton2;
-    private javax.swing.JButton jButton3;
-    private javax.swing.JButton jButton4;
-    private javax.swing.JButton jButton5;
-    private javax.swing.JComboBox<String> jComboBox1;
+    private javax.swing.JButton btnEdit;
+    private javax.swing.JButton btnExport;
+    private javax.swing.JButton btnHapus;
+    private javax.swing.JButton btnImport;
+    private javax.swing.JButton btnTambah;
+    private javax.swing.JComboBox<String> cmbKategori;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
@@ -264,9 +465,9 @@ public class PengelolaanRentalFrame extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel8;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JTable jTable1;
-    private javax.swing.JTextField jTextField1;
-    private javax.swing.JTextField jTextField2;
-    private javax.swing.JTextField jTextField7;
+    private javax.swing.JTable tblKontak;
+    private javax.swing.JTextField txtNama;
+    private javax.swing.JTextField txtNomorTelepon;
+    private javax.swing.JTextField txtPencarian;
     // End of variables declaration//GEN-END:variables
 }
